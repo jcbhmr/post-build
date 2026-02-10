@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+echo "$@" >> /workspaces/post-build/rustc-logger.log
+exec "$@"

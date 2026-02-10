@@ -1,0 +1,48 @@
+/usr/bin/bash
+ \_ /home/codespace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo build -vv -p examples-rename-artifact
+     \_ /workspaces/post-build/target/debug/build/examples-rename-artifact-0ceed7e4ac9d8849/build-script-build
+         \_ ps -ef --forest
+
+${ENVS} /workspaces/post-build/target/debug/build/examples-rename-artifact-0ceed7e4ac9d8849/build-script-build
+
+rustc \
+    --crate-name build_script_build \
+    --edition=2024 \
+    examples/rename-artifact/build.rs \
+    --error-format=json \
+    --json=diagnostic-rendered-ansi,artifacts,future-incompat \
+    --crate-type bin \
+    --emit=dep-info,link \
+    -C embed-bitcode=no \
+    --check-cfg cfg(docsrs,test) \
+    --check-cfg cfg(feature, values()) \
+    -C metadata=66ce5b9cecb67981 \
+    -C extra-filename=-0ceed7e4ac9d8849 \
+    --out-dir /workspaces/post-build/target/debug/build/examples-rename-artifact-0ceed7e4ac9d8849 \
+    -C incremental=/workspaces/post-build/target/debug/incremental \
+    -L dependency=/workspaces/post-build/target/debug/deps \
+    --extern post_build=/workspaces/post-build/target/debug/deps/libpost_build-51bbafb7949b2590.rlib
+
+
+
+rustc \
+    --crate-name examples_rename_artifact \
+    --edition=2024 \
+    examples/rename-artifact/src/lib.rs \
+    --error-format=json \
+    --json=diagnostic-rendered-ansi,artifacts,future-incompat \
+    --diagnostic-width=272 \
+    --crate-type cdylib \
+    --emit=dep-info,link \
+    -C embed-bitcode=no \
+    -C debuginfo=2 \
+    --check-cfg 'cfg(docsrs,test)' \
+    --check-cfg 'cfg(feature, values())' \
+    -C metadata=6178d66a8c04c609 \
+    --out-dir /workspaces/post-build/target/debug/deps \
+    -C incremental=/workspaces/post-build/target/debug/incremental \
+    -L dependency=/workspaces/post-build/target/debug/deps`
+
+
+
+Have post_build::metabuild() generate a lib file that uses a proc macro. This proc macro is then called by rustc AT COMPILE TIME so we can then get the rustc pid. then onexit event once the lib.rs rustc is done. that's when we want to postbuild. but want to STOP the parent cargo build orchestrator from thinking that lib.rs is done until the postbuild script is done. so either a) BLOCK the rustc from exiting AFTER ITS ACTUALLY DONE COMPILING lib.rs until the postbuild script is done or b) somehow add the postbuild to the process tree of the cargo build so that it waits for the postbuild to finish before it considers lib.rs done (possibly with makefile jobserver protocol?) basically want it to be 1) build.rs runs 2) lib.rs is compiled and 3) postbuild runs 4) rest of dependants (things that depend on lib.rs) are compiled after postbuild is done. that way postbuild can rename/move around stuff for dependants to use.
